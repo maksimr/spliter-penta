@@ -79,6 +79,7 @@ var controller = {
        * Escape page and set content in frame
        */
       var href = window.content.document.location.href;
+      this.currentPage = window.content.document;
       var curentHTML = this.body.innerHTML;
       this.frames = [];
       this.body.innerHTML = "";
@@ -92,6 +93,7 @@ var controller = {
       current_page.contentWindow.location.href = href;
       return;
 		} else if (!app.hasNode(this.container, this.body)) {
+      this.currentPage.location.reload();
 			this.clear();
       return;
 		}
@@ -107,8 +109,6 @@ var controller = {
        var cols = this.container.cols.split(',');
        cols[frame.index] = 0;
        this.container.cols = cols.join(',');
-       //window.content.top.location = window.content.location;
-       //window.content.top.location.href = frame.node.contentWindow.location.href;
     }
   },
   _completer: function(context){
@@ -135,9 +135,4 @@ commands.add(["turn[]"], "Minimazed Split Window", function (args) {
    //options: [[["-down"], commands.OPTION_STRING]],
    count: true, argCount: 1, completer: controller._completer }
 );
-//mappings.add([modes.NORMAL], ["<s-,>"],
-  //"Description",
-  //function () {
-  //}
-//);
 // vim: set fdm=marker sw=2 ts=2 sts=2 et:

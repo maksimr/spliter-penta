@@ -1,12 +1,12 @@
 //AUTHOR:  Maksim Ryzhikov
 //NAME:    misc-spliter
-//VERSION  0.1
+//VERSION  0.2
 var app = dactyl.plugins.app;
 
 var spliter;
 
 //SPLITER {{{
-var Spliter = function (id) {
+var SpliterCmd = function (id) {
 	var container = app.create("hbox", {
 		"class": "dactyl-container",
 		hidden: false,
@@ -55,55 +55,34 @@ var Frame = function (url, opts) {
 	});
 };
 
-var controller = {
-	container: null,
-	frames: [],
-	connect: function (node, evt) {
-		node.addEventListener(evt, app.hitch(this, "setWindow"), true);
-    return true;
-	},
-	setWindow: function (evt) {
-    this.body = window.content.document.body;
-		var url = evt.originalTarget.value;
-		this.checkHas();
+var Spliter = function(doc){
+  this.doc = doc;
+  this.frames = [];
+
+  this.initialize = function(){
+    var doc = this.doc, frames = this.frames;
+    var href = doc.location.href;
+    /*reset current page and insert her content in frame*/
+    doc.body.innerHTML = "";
+    this.container = app.create("frameset", {
+      builder: doc
+    }, doc.body);
+    var frame = new Frame(href);
+    frames.push({node:frame,uri: href,index:frames.length});
+    app.place(frame,this.container);
+    frame.contentWindow.location.href = href;
+  };
+};
+var _proto = {
+  split: function(url){
 		var ct = this.container;
 		var fs = this.frames;
 		var frame = new Frame(url);
 		app.place(frame, ct);
 		fs.push({node:frame,uri: url,index:fs.length});
 		ct.cols = app.multi("*", fs.length).split('').join(',');
-	},
-	checkHas: function () {
-		if (!this.container) {
-      /*
-       * Escape page and set content in frame
-       */
-      var href = window.content.document.location.href;
-      this.currentPage = window.content.document;
-      var curentHTML = this.body.innerHTML;
-      this.frames = [];
-      this.body.innerHTML = "";
-			this.container = app.create("frameset", {
-				builder: window.content.document
-			},
-			this.body);
-      var current_page = new Frame(href);
-      this.frames.push({node:current_page,uri: href,index:this.frames.length});
-      app.place(current_page,this.container);
-      current_page.contentWindow.location.href = href;
-      return;
-		} else if (!app.hasNode(this.container, this.body)) {
-      this.currentPage.location.reload();
-			this.clear();
-      return;
-		}
-	},
-	clear: function () {
-		this.frames = [];
-		delete this.container;
-		this.checkHas();
-	},
-  closeWindow: function(uri){
+  },
+  closeFrame: function(uri){
     var frame = app.filter(this.frames,function(f){ return f.uri == uri;},this)[0];
     if (frame.node){
        var cols = this.container.cols.split(',');
@@ -111,25 +90,70 @@ var controller = {
        this.container.cols = cols.join(',');
     }
   },
-  _completer: function(context){
+  _completer: function(){
     var compl = [];
-    app.forEach(controller.frames,function(item){
+    app.forEach(this.frames,function(item){
         compl.push(item.uri);
     },this);
-    context.completions = [[c, ''] for each (c in compl)];
+    return compl;
+  }
+};
+Spliter.prototype = _proto;
+Spliter.prototype.constructor = Spliter;
+
+var controller = {
+	tabs: [],
+  currentTab: null,
+	connect: function (node, evt) {
+		node.addEventListener(evt, app.hitch(this, "_doSplit"), true);
+    return true;
+	},
+	_doSplit: function (evt) {
+    this.currentTab = window.content.document;
+		var url = evt.originalTarget.value;
+    this.actions(this.currentTab,url);
+	},
+  _filterTab: function(doc){
+    return app.filter(this.tabs,function(t){
+        return t.doc == doc;
+    },this)[0];
+  },
+  actions: function(doc,url,action){
+    var tabs = this.tabs;
+    var tab = this._filterTab(doc);
+    app.console.log(tab);
+    if (!tab && !action){
+      tab = new Spliter(doc);
+      tab.initialize();
+      tabs.push(tab);
+      tab.split(url);
+    }else if (tab && !action){
+      tab.split(url);
+    }else if (tab && action == "close"){
+      tab.closeFrame(url);
+    }
+  },
+  _completer: function(context){
+    /*return uri frames on current page*/
+    var compl, doc = window.content.document, tab = controller._filterTab(doc);
+    if(tab){
+      compl = tab._completer();
+      context.completions = [[c, ''] for each (c in compl)];
+    }
   }
 };
 
 commands.add(["split[]"], "Split Window", function (args) {
   if (!spliter){
-    spliter = new Spliter('spliter-id');
+    spliter = new SpliterCmd('spliter-id');
     controller.connect(spliter.textbox,'change');
   }
 	spliter.container.collapsed = false;
 	spliter.textbox.focus();
 });
 commands.add(["turn[]"], "Minimazed Split Window", function (args) {
-    controller.closeWindow(args);
+    var doc = window.content.document;
+    controller.actions(doc,args,"close");
 },
 {
    //options: [[["-down"], commands.OPTION_STRING]],

@@ -82,11 +82,11 @@ var _proto = {
 		fs.push({node:frame,uri: url,index:fs.length});
 		ct.cols = app.multi("*", fs.length).split('').join(',');
   },
-  closeFrame: function(uri){
+  toggleFrame: function(uri){
     var frame = app.filter(this.frames,function(f){ return f.uri == uri;},this)[0];
     if (frame.node){
        var cols = this.container.cols.split(',');
-       cols[frame.index] = 0;
+       cols[frame.index] = (cols[frame.index] === "0")? "*": 0;
        this.container.cols = cols.join(',');
     }
   },
@@ -128,8 +128,8 @@ var controller = {
       tab.split(url);
     }else if (tab && !action){
       tab.split(url);
-    }else if (tab && action == "close"){
-      tab.closeFrame(url);
+    }else if (tab && action){
+      tab.toggleFrame(url);
     }
   },
   _completer: function(context){
@@ -150,12 +150,11 @@ commands.add(["spl[it]"], "Split Window", function (args) {
 	spliter.container.collapsed = false;
 	spliter.textbox.focus();
 });
-commands.add(["tur[n]"], "Minimazed Split Window", function (args) {
+commands.add(["tur[n]"], "Toggle Minimazed/Maximaze Split Window", function (args) {
     var doc = window.content.document;
-    controller.actions(doc,args,"close");
+    controller.actions(doc,args,true);
 },
 {
-   //options: [[["-down"], commands.OPTION_STRING]],
    count: true, argCount: 1, completer: controller._completer }
 );
 // vim: set fdm=marker sw=2 ts=2 sts=2 et:

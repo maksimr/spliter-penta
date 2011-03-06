@@ -121,7 +121,6 @@ var controller = {
   actions: function(doc,url,action){
     var tabs = this.tabs;
     var tab = this._filterTab(doc);
-    app.console.log(tab);
     if (!tab && !action){
       tab = new Spliter(doc);
       tab.initialize();

@@ -157,4 +157,17 @@ commands.add(["tur[n]"], "Toggle Minimazed/Maximaze Split Window", function (arg
 {
    count: true, argCount: 1, completer: controller._completer }
 );
+commands.add(["pull[-tab]"], "Pull Tab", function (args) {
+    var dt = dactyl.modules.tabs;
+    var input = args[0].split(':');
+    var tab = dt.getTab(input[0]-1);
+    var doc = window.content.document;
+    var url = tab.linkedBrowser._contentWindow.document.URL;
+    controller.actions(doc,url);
+},
+{
+   count: true,
+   argCount: 1,
+   completer: completion.buffer 
+});
 // vim: set fdm=marker sw=2 ts=2 sts=2 et:

@@ -168,7 +168,7 @@ var controller = {
 	}
 };
 
-commands.add(["spid[er]"], "Split Window", function (args) {
+group.commands.add(["spid[er]"], "Split Window", function (args) {
 	var option = app.filter(this.options, function (option) {
 		var a = args[option.names[0]] || args[option.names[1]];
 		return !! a;

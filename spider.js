@@ -101,6 +101,7 @@ var _proto_ = {
 	}
 };
 Spider.prototype = _proto_;
+Spider.prototype.constructor = Spider;
 
 /*
  * Controller is controling all Spiders(Tabs)

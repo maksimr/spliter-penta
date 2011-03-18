@@ -1,6 +1,6 @@
 //AUTHOR:  Maksim Ryzhikov
 //NAME:    splitter (Spider)
-//VERSION  1.1b
+//VERSION  1.2b
 var app = dactyl.plugins.app;
 
 /*
@@ -212,7 +212,7 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 			compl = [];
 			app.forEach(tabs, function (i, tab) {
 				var label = tab.label;
-				var url = tab.linkedBrowser._contentWindow.document.URL;
+				var url = tab.linkedBrowser._contentWindow.document.location.href;
 				compl.push([url, label]);
 			},
 			this);

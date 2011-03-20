@@ -1,6 +1,6 @@
 //AUTHOR:  Maksim Ryzhikov
 //NAME:    splitter (Spider)
-//VERSION  1.2b
+//VERSION  1.2
 var app = dactyl.plugins.app;
 
 /*
@@ -79,6 +79,7 @@ var _proto_ = {
 			this.container.cols = cols.join(',');
 			this.reindex();
 		}
+		return frame.node;
 	},
 	toggle: function (uri) {
 		var frame = app.filter(this.frames, function (f) {
@@ -90,6 +91,7 @@ var _proto_ = {
 			cols[frame.index] = (cols[frame.index] === "0") ? "*": 0;
 			this.container.cols = cols.join(',');
 		}
+		return frame.node;
 	},
 	completer: function () {
 		var compl = [];
@@ -119,10 +121,10 @@ var controller = {
 		var tab = new Spider(doc);
 		tab.initialize();
 		this.tabs.push(tab);
-		tab.split(url);
+		return tab.split(url);
 	},
 	doSplit: function (url, tab) {
-		tab.split(url);
+		return tab.split(url);
 	},
 	doClose: function (url, tab) {
 		tab.close(url);
@@ -131,33 +133,35 @@ var controller = {
 		tab.toggle(url);
 	},
 	doPull: function (url, doc) {
-		this.doSplit(url, doc);
+		return this.doSplit(url, doc);
 	},
 	actions: function (url, action, doc) { //actions with windows in current page
-		var doct = doc || window.content.document; //initialize current document
+		var doct = doc || window.content.document,f; //initialize current document
 		var tab = this.beforeFilter(doct); //before filter
 		if (!tab) {
-			return this.doSetup(doct, url);
+			f = this.doSetup(doct, url);
+			return f;
 		}
 		/*
 		 * switch actions
 		 */
 		switch (action) {
 		case "-split":
-			this.doSplit(url, tab);
+			f = this.doSplit(url, tab);
 			break;
 		case "-close":
-			this.doClose(url, tab);
+			f = this.doClose(url, tab);
 			break;
 		case "-turn":
-			this.doToggle(url, tab);
+			f = this.doToggle(url, tab);
 			break;
 		case "-pull":
-			this.doPull(url, tab);
+			f = this.doPull(url, tab);
 			break;
 		default:
-			this.doSplit(url, tab); //deprecated you must pass actions
+			f = this.doSplit(url, tab); //deprecated you must pass actions
 		}
+		return f;
 	},
 	completer: function (context) {
 		var compl, doc = window.content.document,
@@ -180,7 +184,8 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 		var a = args[option.names[0]] || args[option.names[1]];
 		controller.actions(a, option.names[0]);
 	} else {
-		controller.actions(args[0], "-split");
+		var URL = window.content.document.URL;
+		var s = (args.length > 0)? controller.actions(args[0], "-split") : controller.actions(URL,"-split").contentWindow.location.href = URL;
 	}
 },
 {

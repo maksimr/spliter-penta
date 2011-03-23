@@ -1,6 +1,6 @@
 //AUTHOR:  Maksim Ryzhikov
 //NAME:    splitter (Spider)
-//VERSION  1.2
+//VERSION  1.3
 var app = dactyl.plugins.app;
 
 /*
@@ -25,7 +25,11 @@ var Frame = function (url, opts) {
 var Spider = function (doc) {
 	this.doc = doc;
 	this.frames = [];
-	this.afterFilter = function (frame, url) {
+};
+
+var _proto_ = {
+	constructor: Spider,
+	_afterFilter: function (frame, url) {
 		var frames = this.frames;
 		frames.push({
 			node: frame,
@@ -33,15 +37,19 @@ var Spider = function (doc) {
 			index: frames.length
 		});
 		return frames;
-	};
-	this.reindex = function () {
+	},
+	_reindex: function () {
 		app.forEach(this.frames, function (f, i) {
 			f.node.name = "split" + i;
 			f.index = i;
 		},
 		this);
-	};
-	this.initialize = function () {
+	},
+	getActiveElement: function(){
+		return this.doc.activeElement;
+	},
+	//FIXME rewrite
+	initialize: function () {
 		var doc = this.doc;
 		var url = doc.location.href; //save link on current page
 		this.container = app.create("frameset", {
@@ -50,23 +58,28 @@ var Spider = function (doc) {
 		var html = doc.body.parentNode;
 		html.replaceChild(this.container, doc.body); //replace body on frameset
 		this.split(url).contentWindow.location.href = url; //insert link on current page in frame (hack)
-	};
-};
-
-var _proto_ = {
-	constructor: Spider,
+	},
 	split: function (url) {
 		var ct = this.container; //container frameset
 		var frame = new Frame(url, {
 			name: "split" + this.frames.length
 		});
 		app.place(frame, ct);
-		var fs = this.afterFilter(frame, url); //frames
+		var fs = this._afterFilter(frame, url); //frames
 		ct.cols = app.multi("*", fs.length).split('').join(',');
 		return frame;
 	},
-	close: function (uri) {
-		var frames = this.frames;
+	onFocus: function(evt){
+		var target = this.getActiveElement();
+		app.forEach(this.frames,function(f){
+				f.node.style.opacity = 1;
+				if (f.node != target){
+					f.node.style.opacity = 0.5;
+				}
+		},this);
+	},
+	close: function (url) {
+		var frames = this.frames,uri = url||this.getActiveElement().src;//FIXME bug in first time
 		var frame = app.filter(frames, function (f) {
 			return f.uri == uri;
 		},
@@ -77,11 +90,12 @@ var _proto_ = {
 			cols.splice(frame.index, 1);
 			frames.splice(frame.index, 1);
 			this.container.cols = cols.join(',');
-			this.reindex();
+			this._reindex();
 		}
 		return frame.node;
 	},
-	toggle: function (uri) {
+	toggle: function (url) {
+		var uri = url||this.getActiveElement().src;
 		var frame = app.filter(this.frames, function (f) {
 			return f.uri == uri;
 		},
@@ -103,7 +117,6 @@ var _proto_ = {
 	}
 };
 Spider.prototype = _proto_;
-Spider.prototype.constructor = Spider;
 
 /*
  * Controller is controling all Spiders(Tabs)
@@ -124,6 +137,7 @@ var controller = {
 		return tab.split(url);
 	},
 	doSplit: function (url, tab) {
+		url = url||window.content.document.URL;
 		return tab.split(url);
 	},
 	doClose: function (url, tab) {
@@ -145,22 +159,7 @@ var controller = {
 		/*
 		 * switch actions
 		 */
-		switch (action) {
-		case "-split":
-			f = this.doSplit(url, tab);
-			break;
-		case "-close":
-			f = this.doClose(url, tab);
-			break;
-		case "-turn":
-			f = this.doToggle(url, tab);
-			break;
-		case "-pull":
-			f = this.doPull(url, tab);
-			break;
-		default:
-			f = this.doSplit(url, tab); //deprecated you must pass actions
-		}
+		f = this['do'+app.capitalize(action)](url,tab);
 		return f;
 	},
 	completer: function (context) {
@@ -182,10 +181,10 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 
 	if (option) {
 		var a = args[option.names[0]] || args[option.names[1]];
-		controller.actions(a, option.names[0]);
+		controller.actions(a, option.names[0].slice(1));
 	} else {
 		var URL = window.content.document.URL;
-		var s = (args.length > 0)? controller.actions(args[0], "-split") : controller.actions(URL,"-split").contentWindow.location.href = URL;
+		var s = (args.length > 0)? controller.actions(args[0], "split") : controller.actions(URL,"split").contentWindow.location.href = URL;
 	}
 },
 {
@@ -226,4 +225,11 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 		},
 		type: commands.OPTION_STRING
 	}]
+});
+
+group.mappings.add([modes.NORMAL], [";ss"], "Split Window", function () {
+		controller.actions(null, "split");
+});
+group.mappings.add([modes.NORMAL], [";sc"], "Close Split Window", function () {
+		controller.actions(null, "close");
 });

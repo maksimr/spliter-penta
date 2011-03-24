@@ -143,7 +143,7 @@ var controller = {
 	doClose: function (url, tab) {
 		tab.close(url);
 	},
-	doToggle: function (url, tab) {
+	doTurn: function (url, tab) {
 		tab.toggle(url);
 	},
 	doPull: function (url, doc) {

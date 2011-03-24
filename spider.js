@@ -45,7 +45,7 @@ var _proto_ = {
 		},
 		this);
 	},
-	getActiveElement: function(){
+	getActiveElement: function () {
 		return this.doc.activeElement;
 	},
 	//FIXME rewrite
@@ -69,17 +69,21 @@ var _proto_ = {
 		ct.cols = app.multi("*", fs.length).split('').join(',');
 		return frame;
 	},
-	onFocus: function(evt){
+	onFocus: function (evt) {
 		var target = this.getActiveElement();
-		app.forEach(this.frames,function(f){
-				f.node.style.opacity = 1;
-				if (f.node != target){
-					f.node.style.opacity = 0.5;
-				}
-		},this);
+		app.console.log(target);
+		//var target = this.getActiveElement();
+		//app.forEach(this.frames, function (f) {
+			//f.node.style.opacity = 1;
+			//if (f.node != target) {
+				//f.node.style.opacity = 0.5;
+			//}
+		//},
+		//this);
 	},
 	close: function (url) {
-		var frames = this.frames,uri = url||this.getActiveElement().src;//FIXME bug in first time
+		var frames = this.frames,
+		uri = url || this.getActiveElement().src; //FIXME bug in first time
 		var frame = app.filter(frames, function (f) {
 			return f.uri == uri;
 		},
@@ -95,7 +99,7 @@ var _proto_ = {
 		return frame.node;
 	},
 	toggle: function (url) {
-		var uri = url||this.getActiveElement().src;
+		var uri = url || this.getActiveElement().src;
 		var frame = app.filter(this.frames, function (f) {
 			return f.uri == uri;
 		},
@@ -110,7 +114,7 @@ var _proto_ = {
 	completer: function () {
 		var compl = [];
 		app.forEach(this.frames, function (item) {
-			compl.push(item.uri);
+			compl.push([item.uri, item.index]);
 		},
 		this);
 		return compl;
@@ -137,7 +141,7 @@ var controller = {
 		return tab.split(url);
 	},
 	doSplit: function (url, tab) {
-		url = url||window.content.document.URL;
+		url = url || window.content.document.URL;
 		return tab.split(url);
 	},
 	doClose: function (url, tab) {
@@ -150,7 +154,8 @@ var controller = {
 		return this.doSplit(url, doc);
 	},
 	actions: function (url, action, doc) { //actions with windows in current page
-		var doct = doc || window.content.document,f; //initialize current document
+		var doct = doc || window.content.document,
+		f; //initialize current document
 		var tab = this.beforeFilter(doct); //before filter
 		if (!tab) {
 			f = this.doSetup(doct, url);
@@ -159,7 +164,7 @@ var controller = {
 		/*
 		 * switch actions
 		 */
-		f = this['do'+app.capitalize(action)](url,tab);
+		f = this['do' + app.capitalize(action)](url, tab);
 		return f;
 	},
 	completer: function (context) {
@@ -167,7 +172,7 @@ var controller = {
 		tab = controller.beforeFilter(doc);
 		if (tab) {
 			compl = tab.completer();
-			context.completions = [[c, ''] for each (c in compl)];
+			context.completions = compl;
 		}
 	}
 };
@@ -184,7 +189,7 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 		controller.actions(a, option.names[0].slice(1));
 	} else {
 		var URL = window.content.document.URL;
-		var s = (args.length > 0)? controller.actions(args[0], "split") : controller.actions(URL,"split").contentWindow.location.href = URL;
+		var s = (args.length > 0) ? controller.actions(args[0], "split") : controller.actions(URL, "split").contentWindow.location.href = URL;
 	}
 },
 {
@@ -221,15 +226,16 @@ group.commands.add(["spid[er]"], "Split Window", function (args) {
 				compl.push([url, label]);
 			},
 			this);
-			context.completions = [[url, title] for each ([url,title] in compl)];
+			context.completions = compl;
 		},
 		type: commands.OPTION_STRING
 	}]
 });
 
 group.mappings.add([modes.NORMAL], [";ss"], "Split Window", function () {
-		controller.actions(null, "split");
+	var URL = window.content.document.URL;
+	controller.actions(URL, "split").contentWindow.location.href = URL;
 });
 group.mappings.add([modes.NORMAL], [";sc"], "Close Split Window", function () {
-		controller.actions(null, "close");
+	controller.actions(null, "close");
 });
